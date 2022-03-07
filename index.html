@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <link
+      rel="stylesheet"
+      href="https://g.alicdn.com/code/lib/layui/2.6.8/css/layui.min.css"
+      crossorigin
+    />
+    <style>
+      #app {
+        margin-top: 16px;
+      }
+
+      #upload {
+        border: 1px dashed #000;
+        border-radius: 3px;
+        text-align: center;
+        padding: 30px 0;
+        margin-top: 16px;
+        cursor: pointer;
+      }
+      #upload:hover {
+        background-color: rgba(0, 0, 0, 0.02);
+      }
+      #upload .layui-icon {
+        font-size: 30px;
+      }
+      #upload > div {
+        margin-top: 16px;
+      }
+
+      #preview {
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+
+      /* 视图关联状态 */
+      [data-show] {
+        display: none;
+      }
+      /* 单词配置 */
+      [data-state~="等待打开图片"] [data-show="等待打开图片"] {
+        display: block;
+      }
+      [data-state~="编辑图片"] [data-show="编辑图片"] {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layui-container" id="app">
+      <!-- 打开图片 -->
+      <div id="upload" data-show="等待打开图片">
+        <i class="layui-icon">&#xe64a;</i>
+        <div>点击 或者 拖动图片到虚线框内 或者 Ctrl+V</div>
+      </div>
+      <div class="layui-row layui-col-space10" data-show="编辑图片">
+        <div class="layui-col-xs6 layui-col-sm6 layui-col-md6">
+          <img
+            id="preview"
+            src="https://img.alicdn.com/imgextra/i3/O1CN01IJNaal1TcA4smVQhk_!!6000000002402-0-tps-814-1222.jpg"
+          />
+        </div>
+
+        <!-- 编辑图片 -->
+        <div class="layui-col-xs6 layui-col-sm6 layui-col-md6">
+          <div class="layui-card layui-panel">
+            <div class="layui-card-header">配置</div>
+            <div class="layui-card-body">
+              <form class="layui-form" action="" id="setting-form">
+                <div class="layui-form-item">
+                  <label class="layui-form-label">边框宽度</label>
+                  <div class="layui-input-inline">
+                    <input
+                      type="number"
+                      name="borderWidth"
+                      name="width"
+                      placeholder="请输入边框宽度"
+                      autocomplete="off"
+                      class="layui-input"
+                      value="1"
+                      min="0"
+                    />
+                  </div>
+                  <div class="layui-form-mid layui-word-aux">px</div>
+                </div>
+                <div class="layui-form-item">
+                  <label class="layui-form-label">边框圆角</label>
+                  <div class="layui-input-inline">
+                    <input
+                      type="number"
+                      name="borderRadius"
+                      placeholder="请输入边框圆角"
+                      autocomplete="off"
+                      class="layui-input"
+                      value="0"
+                      min="0"
+                    />
+                  </div>
+                  <div class="layui-form-mid layui-word-aux">px</div>
+                </div>
+                <div class="layui-form-item">
+                  <label class="layui-form-label">边框样式</label>
+                  <div class="layui-input-inline">
+                    <select name="borderStyle">
+                      <option value="solid" selected>实线</option>
+                      <option value="dashed">虚线</option>
+                      <option value="dotted">点线</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="layui-form-item">
+                  <label class="layui-form-label">边框颜色</label>
+                  <div class="layui-input-inline">
+                    <div id="borderColor"></div>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div>
+            <button type="button" class="layui-btn" id="preview-btn">
+              <i class="layui-icon layui-icon-search layui-font-22"></i>
+              预览
+            </button>
+            <button
+              type="button"
+              class="layui-btn layui-btn-normal"
+              id="download-btn"
+            >
+              <i
+                class="layui-icon layui-icon-download-circle layui-font-22"
+              ></i>
+              下载
+            </button>
+            <button
+              type="button"
+              class="layui-btn layui-btn-primary"
+              id="back-btn"
+            >
+              <i class="layui-icon layui-icon-return"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/xstate@4/dist/xstate.js"></script>
+    <script src="https://g.alicdn.com/code/lib/dom-to-image/2.6.0/dom-to-image.min.js"></script>
+    <script src="https://g.alicdn.com/code/lib/layui/2.6.8/layui.min.js"></script>
+    <script>
+      const { createMachine, actions, interpret } = XState;
+
+      // 建模状态机
+      const fsm = createMachine(
+        {
+          id: "加边框",
+          initial: "等待打开图片",
+          context: {
+            previewDom: null,
+            style: {},
+            imageUrl: "",
+          },
+          states: {
+            等待打开图片: {
+              on: {
+                OPEN_IMG: {
+                  target: "编辑图片",
+                  actions: "setImageUrl",
+                },
+              },
+            },
+            编辑图片: {
+              initial: "空闲",
+              onEntry: "initStyle",
+              on: {
+                BACK: "等待打开图片",
+              },
+              states: {
+                空闲: {
+                  on: {
+                    PREVIEW: {
+                      target: "生成图片地址中",
+                    },
+                    DOWNLOAD: {
+                      target: "生成图片中",
+                    },
+                    MODIFY_STYLE: {
+                      actions: "setStyle",
+                    },
+                  },
+                },
+                生成图片中: {
+                  invoke: {
+                    src: "genImage",
+                  },
+                  on: {
+                    "*": "空闲",
+                  },
+                },
+                生成图片地址中: {
+                  invoke: {
+                    src: "getImageUrl",
+                  },
+                  on: {
+                    "*": "空闲",
+                  },
+                },
+              },
+            },
+          },
+        },
+        {
+          services: {
+            genImage: ({ previewDom }, e) =>
+              domtoimage
+                .toJpeg(previewDom, {
+                  width: previewDom.naturalWidth,
+                  height: previewDom.naturalHeight,
+                })
+                .then((data) => {
+                  const link = document.createElement("a");
+
+                  link.download = Date.now() + ".jpg";
+                  link.href = data;
+                  link.click();
+                  link.remove();
+                }),
+
+            getImageUrl: ({ previewDom }, e) =>
+              domtoimage
+                .toBlob(previewDom, {
+                  width: previewDom.naturalWidth,
+                  height: previewDom.naturalHeight,
+                })
+                .then((data) => {
+                  const link = document.createElement("a");
+
+                  link.target = "_blank";
+                  link.href = URL.createObjectURL(data);
+                  link.click();
+                  link.remove();
+                }),
+          },
+          actions: {
+            setStyle: actions.assign((ctx, e) => {
+              const { name, value, el } = e.value;
+              const { previewDom, style } = ctx;
+              const newStyle = {
+                ...style,
+                [name]: value,
+              };
+
+              Object.keys(newStyle).forEach((key) => {
+                previewDom.style[key] =
+                  newStyle[key] +
+                  (["borderRadius", "borderWidth"].includes(key) ? "px" : "");
+              });
+
+              return { style: newStyle };
+            }),
+            initStyle: actions.pure((ctx, e) => {
+              const { previewDom, style } = ctx;
+
+              Object.keys(style).forEach((key) => {
+                previewDom.style[key] =
+                  style[key] +
+                  (["borderRadius", "borderWidth"].includes(key) ? "px" : "");
+              });
+            }),
+            setImageUrl: actions.assign({
+              imageUrl: (ctx, { value }) => {
+                const { previewDom } = ctx;
+                console.log(value);
+                previewDom.src = value.src;
+
+                return value.src;
+              },
+            }),
+          },
+        }
+      ).withContext({
+        previewDom: document.getElementById("preview"),
+        style: {
+          borderWidth: "1",
+          borderRadius: "0",
+          borderStyle: "solid",
+          borderColor: "#000",
+        },
+        imageUrl: "",
+      });
+
+      // 托管状态机
+      const service = interpret(fsm)
+        .onTransition((state) => render(state))
+        .start();
+
+      document.getElementById("download-btn").addEventListener("click", () => {
+        service.send("DOWNLOAD");
+      });
+      document.getElementById("preview-btn").addEventListener("click", () => {
+        service.send("PREVIEW");
+      });
+      document.getElementById("back-btn").addEventListener("click", () => {
+        service.send("BACK");
+      });
+      document.addEventListener("paste", ({ clipboardData: { items } }) => {
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].type.indexOf("image") !== -1) {
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+              service.send({
+                type: "OPEN_IMG",
+                value: {
+                  src: e.target.result,
+                },
+              });
+            };
+            reader.readAsDataURL(items[i].getAsFile());
+
+            break;
+          }
+        }
+      });
+
+      // UI 初始化
+      layui.upload.render({
+        elem: "#upload",
+        auto: false,
+        acceptMime: "image/*",
+        choose: ({ preview }) =>
+          preview(function (index, file, result) {
+            service.send({
+              type: "OPEN_IMG",
+              value: {
+                src: result,
+              },
+            });
+          }),
+      });
+
+      layui.colorpicker.render({
+        elem: "#borderColor",
+        color: "#000",
+        done: (color) =>
+          settingChange(
+            "borderColor",
+            color,
+            document.getElementById("borderColor")
+          ),
+      });
+
+      // 配置项事件注册
+      document
+        .querySelectorAll("#setting-form :is(input, select)")
+        .forEach((item) =>
+          item.addEventListener("change", ({ target }) =>
+            settingChange(target.name, target.value, target)
+          )
+        );
+      layui.form.on("select", ({ elem, value }) =>
+        settingChange(elem.name, value, elem)
+      );
+
+      function settingChange(name, value, el) {
+        service.send({ type: "MODIFY_STYLE", value: { name, value, el } });
+      }
+
+      function render(state) {
+        const appDom = document.getElementById("app");
+        const uploadDom = document.getElementById("upload");
+
+        appDom.dataset.state =
+          typeof state.value == "object"
+            ? state.toStrings().join(" ")
+            : state.value;
+
+        if (
+          ["编辑图片.生成图片中", "编辑图片.生成图片地址中"].some(state.matches)
+        ) {
+          layer.load();
+        } else {
+          layer.closeAll("loading");
+        }
+      }
+    </script>
+  </body>
+</html>

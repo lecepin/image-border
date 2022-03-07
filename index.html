@@ -60,10 +60,7 @@
       </div>
       <div class="layui-row layui-col-space10" data-show="编辑图片">
         <div class="layui-col-xs6 layui-col-sm6 layui-col-md6">
-          <img
-            id="preview"
-            src="https://img.alicdn.com/imgextra/i3/O1CN01IJNaal1TcA4smVQhk_!!6000000002402-0-tps-814-1222.jpg"
-          />
+          <img id="preview" />
         </div>
 
         <!-- 编辑图片 -->
@@ -119,6 +116,16 @@
                     <div id="borderColor"></div>
                   </div>
                 </div>
+                <div class="layui-form-item">
+                  <label class="layui-form-label">导出大小</label>
+                  <div class="layui-input-inline">
+                    <select name="zoomRatio">
+                      <option value="1" selected>1倍图</option>
+                      <option value="2">2倍图</option>
+                      <option value="4">4倍图</option>
+                    </select>
+                  </div>
+                </div>
               </form>
             </div>
           </div>
@@ -167,6 +174,7 @@
             previewDom: null,
             style: {},
             imageUrl: "",
+            zoomRatio: 1,
           },
           states: {
             等待打开图片: {
@@ -195,6 +203,9 @@
                     MODIFY_STYLE: {
                       actions: "setStyle",
                     },
+                    MODIFY_OUTPUT_ZOOM: {
+                      actions: "setOutputZoom",
+                    },
                   },
                 },
                 生成图片中: {
@@ -219,11 +230,11 @@
         },
         {
           services: {
-            genImage: ({ previewDom }, e) =>
+            genImage: ({ previewDom, zoomRatio }, e) =>
               domtoimage
                 .toJpeg(previewDom, {
-                  width: previewDom.naturalWidth,
-                  height: previewDom.naturalHeight,
+                  width: previewDom.naturalWidth * zoomRatio,
+                  height: previewDom.naturalHeight * zoomRatio,
                 })
                 .then((data) => {
                   const link = document.createElement("a");
@@ -234,11 +245,11 @@
                   link.remove();
                 }),
 
-            getImageUrl: ({ previewDom }, e) =>
+            getImageUrl: ({ previewDom, zoomRatio }, e) =>
               domtoimage
                 .toBlob(previewDom, {
-                  width: previewDom.naturalWidth,
-                  height: previewDom.naturalHeight,
+                  width: previewDom.naturalWidth * zoomRatio,
+                  height: previewDom.naturalHeight * zoomRatio,
                 })
                 .then((data) => {
                   const link = document.createElement("a");
@@ -284,6 +295,9 @@
                 return value.src;
               },
             }),
+            setOutputZoom: actions.assign({
+              zoomRatio: (ctx, { value }) => value.value,
+            }),
           },
         }
       ).withContext({
@@ -295,6 +309,7 @@
           borderColor: "#000",
         },
         imageUrl: "",
+        zoomRatio: 1,
       });
 
       // 托管状态机
@@ -366,9 +381,18 @@
             settingChange(target.name, target.value, target)
           )
         );
-      layui.form.on("select", ({ elem, value }) =>
-        settingChange(elem.name, value, elem)
-      );
+      layui.form.on("select", ({ elem, value }) => {
+        if (elem.name === "zoomRatio") {
+          return service.send({
+            type: "MODIFY_OUTPUT_ZOOM",
+            value: {
+              value: +value,
+            },
+          });
+        }
+
+        settingChange(elem.name, value, elem);
+      });
 
       function settingChange(name, value, el) {
         service.send({ type: "MODIFY_STYLE", value: { name, value, el } });

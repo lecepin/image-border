@@ -5,6 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>图片加边框</title>
+    <link rel="manifest" href="./manifest.json" />
     <link
       rel="stylesheet"
       href="https://g.alicdn.com/code/lib/layui/2.6.8/css/layui.min.css"
@@ -162,6 +163,20 @@
     <script src="https://unpkg.com/xstate@4/dist/xstate.js"></script>
     <script src="https://g.alicdn.com/code/lib/dom-to-image/2.6.0/dom-to-image.min.js"></script>
     <script src="https://g.alicdn.com/code/lib/layui/2.6.8/layui.min.js"></script>
+    <script>
+      (function () {
+        if (window.addEventListener) {
+          window.addEventListener("load", () => {
+            var script = document.createElement("script");
+            script.src = "sw.reg.mgr.js?t=" + Date.now();
+            script.async = true;
+            script.type = "text/javascript";
+            script.crossOrigin = "anonymous";
+            document.head.insertBefore(script, document.head.firstChild);
+          });
+        }
+      })();
+    </script>
     <script>
       const { createMachine, actions, interpret } = XState;
 
@@ -400,7 +415,6 @@
 
       function render(state) {
         const appDom = document.getElementById("app");
-        const uploadDom = document.getElementById("upload");
 
         appDom.dataset.state =
           typeof state.value == "object"

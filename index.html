@@ -208,15 +208,14 @@
             imageUrl: "",
             zoomRatio: 1,
           },
-          states: {
-            等待打开图片: {
-              on: {
-                OPEN_IMG: {
-                  target: "编辑图片",
-                  actions: "setImageUrl",
-                },
-              },
+          on: {
+            OPEN_IMG: {
+              target: "编辑图片",
+              actions: "setImageUrl",
             },
+          },
+          states: {
+            等待打开图片: {},
             编辑图片: {
               initial: "空闲",
               onEntry: "initStyle",
@@ -374,6 +373,9 @@
       });
       document.getElementById("back-btn").addEventListener("click", () => {
         service.send("BACK");
+      });
+      document.addEventListener("copy", () => {
+        service.send("COPY");
       });
       document.addEventListener("paste", ({ clipboardData: { items } }) => {
         for (let i = 0; i < items.length; i++) {

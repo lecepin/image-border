@@ -10,6 +10,20 @@
 
 ---
 
+## 使用
+
+- 上传：同时支持拖住图片文件、粘贴图片文件 和 打开图片文件
+- 下载：同时支持点击 “复制”按钮再粘贴到文档中、点击“下载”按钮使用图片文件、点击“预览”按钮 右键另存为下载。
+
+
+我最常用的方式：
+
+`截图` -> `打开本工具网站` -> `Cmd + V` (在工具中加载图片) -> `Cmd + C` (工具会把图片写到剪切板里) 
+
+然后直接在你的文档中 `Cmd + V` 使用即可。
+
+---
+
 ![image](https://user-images.githubusercontent.com/11046969/157022951-a59ed876-61ce-4833-bd19-d6cbce42c0b6.png)
 
 
@@ -22,4 +36,5 @@
 
 基于 XState 状态机实现：
 
-<img src="https://user-images.githubusercontent.com/11046969/157022538-2f3904a1-42f4-4543-afef-c1b69b755fcb.jpeg" width="700" />
+![viz-screenshot](https://user-images.githubusercontent.com/11046969/160356822-0fd9c415-dfe5-47b9-a6bf-b31aafbfe52d.jpeg)
+

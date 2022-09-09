@@ -6,7 +6,15 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE_NAME)
-      .then((cache) => cache.addAll(["./", "./index.html"]))
+      .then((cache) =>
+        cache.addAll([
+          "./",
+          "./index.html",
+          "./domtoimage.js",
+          "./encode/webp/webp_enc.js",
+          "./encode/webp/webp_enc.wasm",
+        ])
+      )
   );
 });
 

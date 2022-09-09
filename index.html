@@ -363,8 +363,9 @@
                     height: previewDom.naturalHeight * zoomRatio,
                   })
                   .then((data) => {
-                    return webp().then((module) =>
-                      module.encode(data.data, data.width, data.height, {
+                    return webp().then((module) => {
+                      console.time("webp");
+                      return module.encode(data.data, data.width, data.height, {
                         quality: 75,
                         target_size: 0,
                         target_PSNR: 0,
@@ -392,10 +393,11 @@
                         near_lossless: 100,
                         use_delta_palette: 0,
                         use_sharp_yuv: 0,
-                      })
-                    );
+                      });
+                    });
                   })
                   .then((data) => {
+                    console.timeEnd("webp");
                     const blob = new Blob([data], { type: "image/webp" });
                     const link = document.createElement("a");
 
